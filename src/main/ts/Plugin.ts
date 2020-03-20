@@ -1,4 +1,4 @@
-import { LatexConfig } from './conf/latex.config';
+import { LatexSpec } from './spec/latex.spec';
 import { Document, document } from '@ephox/dom-globals';
 
 declare const tinymce: any;
@@ -15,7 +15,7 @@ const setup = (editor, url) => {
   let renderId = '';
 
   /** 插件配置 */
-  let config: LatexConfig = new LatexConfig();
+  let config: LatexSpec = new LatexSpec();
 
   /** 外部 JavaScript 文件地址列表 */
   const arr: Array<string> = new Array<string>();
