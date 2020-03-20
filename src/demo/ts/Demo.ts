@@ -10,8 +10,7 @@ tinymce.init({
   toolbar: 'tinymce-latex',
   latex: {
     mathJax: {
-      lib: 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js',
-      conf: 'math-jax.conf.js'
+      lib: 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js'
     }
   }
 });

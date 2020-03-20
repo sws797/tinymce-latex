@@ -1,5 +1,5 @@
 import { LatexSpec } from './spec/latex.spec';
-import { Document, document } from '@ephox/dom-globals';
+import { Document, document, Window, window } from '@ephox/dom-globals';
 
 declare const tinymce: any;
 
@@ -21,10 +21,16 @@ const setup = (editor, url) => {
   const arr: Array<string> = new Array<string>();
 
   /**
-   * 渲染公式
-   * @param value latex 公式
+   * 初始化 MathJax 配置
    */
-  const render = (value) => {
+  const initMathJaxConf = (win: Window) => {
+    // @ts-ignore
+    win.MathJax = {
+      options: {
+        processHtmlClass: 'math-tex-original',
+        ignoreHtmlClass: '.*'
+      }
+    };
   };
 
   /**
@@ -38,12 +44,13 @@ const setup = (editor, url) => {
       /** 创建 script 节点 */
       const node = doc.createElement('script');
       /** 配置 script 节点 */
+      node.id = editor.dom.uniqueId();
       node.src = value;
       node.type = 'text/javascript';
       node.async = false;
       node.charset = 'utf-8';
       /** 添加到 head 中 */
-      document.head.appendChild(node);
+      doc.head.appendChild(node);
     });
   };
 
@@ -56,8 +63,9 @@ const setup = (editor, url) => {
       /** 获取用户配置 */
       config = editor.settings.latex;
       /** 添加配置 */
-      arr.push(config.mathJax.conf);
       arr.push(config.mathJax.lib);
+      /** 初始化 MathJax 配置 */
+      initMathJaxConf(editor.dom.win);
       /** 当前文档引入外部 JavaScript 库 */
       importJavaScript(editor.dom.doc, arr);
     },
@@ -101,10 +109,45 @@ const setup = (editor, url) => {
       });
 
       /** 获取渲染容器 */
+      const container = document.getElementById(renderId);
+      /** 获取渲染 document */
       // @ts-ignore
-      const container = document.getElementById(renderId).contentDocument;
+      const renderDocument = container.contentDocument;
+      /** 获取渲染 window */
+      // @ts-ignore
+      const renderWindow = container.contentWindow;
+      /** 初始化 MathJax 配置 */
+      initMathJaxConf(window);
+      initMathJaxConf(renderWindow);
       /** 渲染文档引入外部 JavaScript 库 */
-      importJavaScript(container, arr);
+      importJavaScript(renderDocument, arr);
+
+      /**
+       * 渲染公式
+       * @param value latex 公式
+       */
+      const render = (value) => {
+        /** 获取公式持有者 */
+        let holder = renderDocument.body.querySelector('div');
+        /** 不存在则创建 */
+        if (!holder) {
+          holder = renderDocument.createElement('div');
+          holder.classList.add('math-tex-original');
+          renderDocument.body.appendChild(holder);
+        }
+        /** 置入公式 */
+        holder.innerHTML = mathify(value);
+        /** 渲染 */
+        renderWindow.MathJax.typeset();
+      };
+
+      /**
+       * 将 latex 公式数学化
+       * @param value latex 公式
+       */
+      const mathify = (value: string) => {
+        return `$$${value}$$`;
+      };
     }
   });
 };
