@@ -56,6 +56,7 @@ const setup = (editor, url) => {
       /** 获取用户配置 */
       config = editor.settings.latex;
       /** 添加配置 */
+      arr.push(config.mathJax.conf);
       arr.push(config.mathJax.lib);
       /** 当前文档引入外部 JavaScript 库 */
       importJavaScript(editor.dom.doc, arr);
