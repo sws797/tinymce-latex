@@ -82,7 +82,7 @@ const setup = (editor, url) => {
           }, {
             type: 'htmlpanel',
             name: 'render',
-            html: `<iframe id="${renderId}"></iframe>`
+            html: `<iframe id="${renderId}" style="width: 100%"></iframe>`
           }]
         },
         buttons: [
