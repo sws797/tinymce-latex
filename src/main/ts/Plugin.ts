@@ -138,7 +138,7 @@ const setup = (editor) => {
           type: 'htmlpanel',
           name: 'render',
           html: `<iframe id="${conf.renderIframeID}" style="width: 100%"></iframe>
-                 <p style="text-align: center; font-size: 14px; color: #1677ff;">很抱歉, 受第三方开源库MathJax 3.0限制, TinyMCE Latex暂不支持公式换行</p>`
+                 <p style="text-align: center; font-size: 12px; color: #1677ff;">很抱歉, 受第三方开源库MathJax 3.0限制, TinyMCE Latex暂不支持公式换行</p>`
         }]
       },
       /** 底部按钮 */
