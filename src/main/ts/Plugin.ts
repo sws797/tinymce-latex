@@ -54,6 +54,48 @@ const setup = (editor, url) => {
     });
   };
 
+  const renderElement = (element) => {
+    const value = element.getAttribute('data-latex') || element.innerHTML;
+    renderElementWithLatex(element, value);
+  };
+
+  /**
+   * 渲染元素
+   * @param element 元素
+   * @param value 公式
+   */
+  const renderElementWithLatex = (element, value) => {
+    element.classList.add('math-tex');
+    element.innerHTML = '';
+    element.style.cursor = 'pointer';
+    element.setAttribute('contenteditable', false);
+    element.setAttribute('data-latex', value);
+
+    const math = editor.dom.create('span');
+    math.innerHTML = value;
+    math.classList.add('math-tex-original');
+    element.appendChild(math);
+  };
+
+  // add dummy tag on set content
+  editor.on('BeforeSetContent', function (e) {
+    const div = editor.dom.create('div');
+    div.innerHTML = e.content;
+    const elements = div.querySelectorAll('.math-tex');
+    for (let i = 0 ; i < elements.length; i++) {
+      renderElement(elements[i]);
+    }
+    e.content = div.innerHTML;
+  });
+
+  // refresh mathjax on set content
+  editor.on('SetContent', (e) => {
+    if (editor.getDoc().defaultView.MathJax) {
+      editor.getDoc().defaultView.MathJax.startup.getComponents();
+      editor.getDoc().defaultView.MathJax.typeset();
+    }
+  });
+
   /** 注册 Latex 按钮 */
   editor.ui.registry.addButton('tinymce-latex', {
     text: 'LaTex',
@@ -104,7 +146,16 @@ const setup = (editor, url) => {
           }
         },
         onSubmit: (api) => {
-          console.log('submited');
+          /** 获取输入值 */
+          const value = api.getData().input.trim();
+          /** 构造元素 */
+          const element = editor.getDoc().createElement('span');
+          /** 渲染元素 */
+          renderElementWithLatex(element, mathify(value));
+          /** 添加到编辑器 */
+          editor.insertContent(element.outerHTML);
+          /** 关闭 api */
+          api.close();
         }
       });
 
