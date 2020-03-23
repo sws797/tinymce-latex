@@ -1,5 +1,7 @@
-import { LatexSpec } from './spec/latex.spec';
-import { Document, document, Window, window } from '@ephox/dom-globals';
+import { document } from '@ephox/dom-globals';
+import { LatexRender } from './core/latex-render';
+import { LatexConfig } from './core/latex-config';
+import { MathJaxInit } from './core/math-jax-init';
 
 declare const tinymce: any;
 
@@ -8,51 +10,7 @@ declare const tinymce: any;
  */
 const setup = (editor, url) => {
 
-  /** latex 公式 */
-  let latex = '';
-
-  /** 渲染项 id */
-  let renderId = '';
-
-  /** 插件配置 */
-  let config: LatexSpec = new LatexSpec();
-
-  /** 外部 JavaScript 文件地址列表 */
-  const arr: Array<string> = new Array<string>();
-
-  /**
-   * 初始化 MathJax 配置
-   */
-  const initMathJaxConf = (win: Window) => {
-    // @ts-ignore
-    win.MathJax = {
-      options: {
-        processHtmlClass: 'math-tex-original',
-        ignoreHtmlClass: '.*'
-      }
-    };
-  };
-
-  /**
-   * 引入外部 JavaScript 文件
-   * @param doc 文档对象
-   * @param array JavaScript 文件地址数组
-   */
-  const importJavaScript = (doc: Document, array: Array<string>) => {
-    /** 引入相关第三方库 */
-    array.forEach((value: string) => {
-      /** 创建 script 节点 */
-      const node = doc.createElement('script');
-      /** 配置 script 节点 */
-      node.id = editor.dom.uniqueId();
-      node.src = value;
-      node.type = 'text/javascript';
-      node.async = false;
-      node.charset = 'utf-8';
-      /** 添加到 head 中 */
-      doc.head.appendChild(node);
-    });
-  };
+  let conf;
 
   const renderElement = (element) => {
     const value = element.getAttribute('data-latex') || element.innerHTML;
@@ -82,34 +40,27 @@ const setup = (editor, url) => {
     const div = editor.dom.create('div');
     div.innerHTML = e.content;
     const elements = div.querySelectorAll('.math-tex');
+    // tslint:disable-next-line:prefer-for-of
     for (let i = 0 ; i < elements.length; i++) {
       renderElement(elements[i]);
     }
     e.content = div.innerHTML;
   });
 
-  // refresh mathjax on set content
-  editor.on('SetContent', (e) => {
-    if (editor.getDoc().defaultView.MathJax) {
-      editor.getDoc().defaultView.MathJax.startup.getComponents();
-      editor.getDoc().defaultView.MathJax.typeset();
-    }
+  /** 监听 set-content 事件 */
+  editor.on('SetContent', () => {
+    /** 渲染公式 */
+    LatexRender.render(editor.getDoc().defaultView.MathJax);
   });
 
   /** 注册 Latex 按钮 */
   editor.ui.registry.addButton('tinymce-latex', {
     text: 'LaTex',
     onSetup: () => {
-      /** 获取渲染标签 id */
-      renderId = editor.dom.uniqueId();
-      /** 获取用户配置 */
-      config = editor.settings.latex;
-      /** 添加配置 */
-      arr.push(config.mathJax.lib);
+      /** 初始化配置 */
+      conf = new LatexConfig(editor);
       /** 初始化 MathJax 配置 */
-      initMathJaxConf(editor.dom.win);
-      /** 当前文档引入外部 JavaScript 库 */
-      importJavaScript(editor.dom.doc, arr);
+      MathJaxInit.conf(editor.dom.win, editor.dom.doc, conf);
     },
     onAction: () => {
       // noinspection TypeScriptValidateJSTypes
@@ -124,7 +75,7 @@ const setup = (editor, url) => {
           }, {
             type: 'htmlpanel',
             name: 'render',
-            html: `<iframe id="${renderId}" style="width: 100%"></iframe>`
+            html: `<iframe id="${conf.renderIframeID}" style="width: 100%"></iframe>`
           }]
         },
         buttons: [
@@ -138,11 +89,11 @@ const setup = (editor, url) => {
           /** 获取输入值 */
           const value = api.getData().input.trim();
           /** 如果当前公式有改动 */
-          if (value !== latex) {
+          if (value !== conf.latex) {
             /** 渲染公式 */
             render(value);
             /** 储存公式 */
-            latex = value;
+            conf.latex = value;
           }
         },
         onSubmit: (api) => {
@@ -151,7 +102,7 @@ const setup = (editor, url) => {
           /** 构造元素 */
           const element = editor.getDoc().createElement('span');
           /** 渲染元素 */
-          renderElementWithLatex(element, mathify(value));
+          renderElementWithLatex(element, LatexRender.mathify(value));
           /** 添加到编辑器 */
           editor.insertContent(element.outerHTML);
           /** 关闭 api */
@@ -160,7 +111,7 @@ const setup = (editor, url) => {
       });
 
       /** 获取渲染容器 */
-      const container = document.getElementById(renderId);
+      const container = document.getElementById(conf.renderIframeID);
       /** 获取渲染 document */
       // @ts-ignore
       const renderDocument = container.contentDocument;
@@ -168,10 +119,7 @@ const setup = (editor, url) => {
       // @ts-ignore
       const renderWindow = container.contentWindow;
       /** 初始化 MathJax 配置 */
-      initMathJaxConf(window);
-      initMathJaxConf(renderWindow);
-      /** 渲染文档引入外部 JavaScript 库 */
-      importJavaScript(renderDocument, arr);
+      MathJaxInit.conf(renderWindow, renderDocument, conf);
 
       /**
        * 渲染公式
@@ -187,17 +135,9 @@ const setup = (editor, url) => {
           renderDocument.body.appendChild(holder);
         }
         /** 置入公式 */
-        holder.innerHTML = mathify(value);
+        holder.innerHTML = LatexRender.mathify(value);
         /** 渲染 */
         renderWindow.MathJax.typeset();
-      };
-
-      /**
-       * 将 latex 公式数学化
-       * @param value latex 公式
-       */
-      const mathify = (value: string) => {
-        return `$$${value}$$`;
       };
     }
   });
