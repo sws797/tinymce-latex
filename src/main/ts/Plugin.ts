@@ -13,6 +13,31 @@ const setup = (editor, url) => {
   /** 核心配置 */
   let conf;
 
+  editor.on('GetContent', function (e) {
+    /** 查询所有需要渲染的元素 */
+    const div = document.createElement('div') as HTMLElement;
+    div.innerHTML = e.content;
+    const elements = div.querySelectorAll('.math-tex');
+    /** 元素 -> latex */
+    // @ts-ignore
+    for (const element of elements) {
+      /** 移除子元素 */
+      const children = element.querySelectorAll('span');
+      // tslint:disable-next-line:prefer-for-of
+      for (let j = 0; j < children.length; j++) {
+        children[j].remove();
+      }
+      /** 移除属性 */
+      const latex = element.getAttribute('data-latex');
+      element.removeAttribute('contenteditable');
+      element.removeAttribute('style');
+      element.removeAttribute('data-latex');
+      element.innerHTML = latex;
+    }
+    /** 返回纯 latex */
+    e.content = div.innerHTML;
+  });
+
   /** 监听 before-set-content 事件 */
   editor.on('BeforeSetContent', function (e) {
     /** 查询所有需要渲染的元素 */
@@ -32,6 +57,16 @@ const setup = (editor, url) => {
   editor.on('SetContent', () => {
     /** 渲染公式 */
     LatexRender.render(editor.getDoc().defaultView.MathJax);
+  });
+
+  /** 监听点击事件 */
+  editor.on('click', (e) => {
+    /** 如果点击了 math-tex 的元素 */
+    const container = e.target.closest('.math-tex');
+    /** 弹出编辑框 */
+    if (container) {
+      latexAction(container);
+    }
   });
 
   const renderElement = (element) => {
@@ -67,8 +102,20 @@ const setup = (editor, url) => {
 
   /**
    * latex 插件的按钮点击响应方法
+   * @param target 当前编辑的目标元素
    */
-  const latexAction = () => {
+  const latexAction = (target) => {
+    /** 当前公式数据 */
+    let latex: string = '';
+    /** 传入元素 */
+    if (target) {
+      /** 获取元素的公式值 */
+      const attribute = target.getAttribute('data-latex');
+      /** 截取纯公式 */
+      if (attribute.length >= 4) {
+        latex = attribute.substr(2, attribute.length - 4);
+      }
+    }
     /** 弹出框 Window 对象 */
     let iframeWindow: Window;
     /** 弹出框文档对象 */
@@ -116,7 +163,8 @@ const setup = (editor, url) => {
         editor.insertContent(element.outerHTML);
         /** 关闭 api */
         api.close();
-      }
+      },
+      initialData: {input: latex}
     });
 
     /** 获取渲染容器 */
@@ -129,6 +177,8 @@ const setup = (editor, url) => {
     iframeDocument = container.contentDocument;
     /** 初始化 MathJax 配置 */
     MathJaxInit.conf(iframeWindow, iframeDocument, conf);
+    /** 渲染 iframe 公式 */
+    LatexRender.renderInIframe(iframeWindow, iframeDocument, latex);
   };
 
   /** 注册 Latex 按钮 */

@@ -10,8 +10,7 @@ export class LatexRender {
    * @param mathJax 渲染器
    */
   public static render(mathJax: any): void {
-    if (mathJax) {
-      mathJax.startup.getComponents();
+    if (mathJax && mathJax.typeset) {
       mathJax.typeset();
     }
   }
