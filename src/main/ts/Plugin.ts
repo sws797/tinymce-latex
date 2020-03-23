@@ -83,6 +83,9 @@ const setup = (editor) => {
     element.classList.add('math-tex');
     element.innerHTML = '';
     element.style.cursor = 'pointer';
+    element.style.display = 'inline-block';
+    element.style.marginLeft = '5px';
+    element.style.marginRight = '5px';
     element.setAttribute('contenteditable', false);
     element.setAttribute('data-latex', value);
 
