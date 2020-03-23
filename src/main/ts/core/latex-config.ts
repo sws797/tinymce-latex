@@ -5,9 +5,6 @@ import { LatexSpec } from '../spec/latex.spec';
  */
 export class LatexConfig {
 
-  /** 公式 */
-  public latex: string;
-
   /** 公式渲染栏 id */
   public renderIframeID: string;
 
@@ -18,7 +15,6 @@ export class LatexConfig {
   public scripts: Array<string>;
 
   constructor(editor: any) {
-    this.latex = '';
     /** 获取公式渲染栏 id */
     this.renderIframeID = editor.dom.uniqueId();
     /** 获取用户自定义配置 */
