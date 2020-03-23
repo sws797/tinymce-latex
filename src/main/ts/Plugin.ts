@@ -1,4 +1,4 @@
-import { document } from '@ephox/dom-globals';
+import { Document, document, Window } from '@ephox/dom-globals';
 import { LatexRender } from './core/latex-render';
 import { LatexConfig } from './core/latex-config';
 import { MathJaxInit } from './core/math-jax-init';
@@ -66,6 +66,10 @@ const setup = (editor, url) => {
    * latex 插件的按钮点击响应方法
    */
   const latexAction = () => {
+    /** 弹出框 Window 对象 */
+    let iframeWindow: Window;
+    /** 弹出框文档对象 */
+    let iframeDocument: Document;
     // noinspection TypeScriptValidateJSTypes
     /** 点击时，弹出选择页面 */
     editor.windowManager.open({
@@ -95,8 +99,8 @@ const setup = (editor, url) => {
       onChange: (api) => {
         /** 获取输入值 */
         const value = getValue(api);
-        /** 渲染公式 */
-        render(value);
+        /** 渲染 iframe 公式 */
+        LatexRender.renderInIframe(iframeWindow, iframeDocument, value);
       },
       onSubmit: (api) => {
         /** 获取输入值 */
@@ -114,23 +118,14 @@ const setup = (editor, url) => {
 
     /** 获取渲染容器 */
     const container = document.getElementById(conf.renderIframeID);
-    /** 获取渲染 document */
-      // @ts-ignore
-    const renderDocument = container.contentDocument;
     /** 获取渲染 window */
-      // @ts-ignore
-    const renderWindow = container.contentWindow;
+    // @ts-ignore
+    iframeWindow = container.contentWindow;
+    /** 获取渲染 document */
+    // @ts-ignore
+    iframeDocument = container.contentDocument;
     /** 初始化 MathJax 配置 */
-    MathJaxInit.conf(renderWindow, renderDocument, conf);
-
-    /**
-     * 渲染公式
-     * @param value latex 公式
-     */
-    const render = (value) => {
-      /** 渲染 iframe 公式 */
-      LatexRender.renderInIframe(renderWindow, renderDocument, value);
-    };
+    MathJaxInit.conf(iframeWindow, iframeDocument, conf);
   };
 
   /** 注册 Latex 按钮 */
