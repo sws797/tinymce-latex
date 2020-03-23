@@ -1,4 +1,4 @@
-import { Document, document, Window } from '@ephox/dom-globals';
+import { Document, document, HTMLElement, Window } from '@ephox/dom-globals';
 import { LatexRender } from './core/latex-render';
 import { LatexConfig } from './core/latex-config';
 import { MathJaxInit } from './core/math-jax-init';
@@ -12,6 +12,21 @@ const setup = (editor, url) => {
 
   /** 核心配置 */
   let conf;
+
+  /** 监听 before-set-content 事件 */
+  editor.on('BeforeSetContent', function (e) {
+    /** 查询所有需要渲染的元素 */
+    const div = document.createElement('div') as HTMLElement;
+    div.innerHTML = e.content;
+    const elements = div.querySelectorAll('.math-tex');
+    /** 渲染元素 */
+    // @ts-ignore
+    for (const element of elements) {
+      renderElement(element);
+    }
+    /** 渲染后置回 */
+    e.content = div.innerHTML;
+  });
 
   /** 监听 set-content 事件 */
   editor.on('SetContent', () => {
@@ -41,18 +56,6 @@ const setup = (editor, url) => {
     math.classList.add('math-tex-original');
     element.appendChild(math);
   };
-
-  // add dummy tag on set content
-  editor.on('BeforeSetContent', function (e) {
-    const div = editor.dom.create('div');
-    div.innerHTML = e.content;
-    const elements = div.querySelectorAll('.math-tex');
-    // tslint:disable-next-line:prefer-for-of
-    for (let i = 0 ; i < elements.length; i++) {
-      renderElement(elements[i]);
-    }
-    e.content = div.innerHTML;
-  });
 
   /**
    * 从 api 对象中获取输入值
@@ -104,7 +107,7 @@ const setup = (editor, url) => {
       },
       onSubmit: (api) => {
         /** 获取输入值 */
-        const value = api.getData().input.trim();
+        const value = getValue(api);
         /** 构造元素 */
         const element = editor.getDoc().createElement('span');
         /** 渲染元素 */
