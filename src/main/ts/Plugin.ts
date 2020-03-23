@@ -8,7 +8,7 @@ declare const tinymce: any;
 /**
  * 插件核心功能
  */
-const setup = (editor, url) => {
+const setup = (editor) => {
 
   /** 核心配置 */
   let conf;
@@ -108,7 +108,7 @@ const setup = (editor, url) => {
     /** 当前公式数据 */
     let latex: string = '';
     /** 传入元素 */
-    if (target) {
+    if (target && target.getAttribute) {
       /** 获取元素的公式值 */
       const attribute = target.getAttribute('data-latex');
       /** 截取纯公式 */
