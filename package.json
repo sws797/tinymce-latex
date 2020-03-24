@@ -1,7 +1,7 @@
 {
   "name": "tinymce-latex",
   "version": "1.0.0",
-  "description": "",
+  "description": "TinyMCE plugin for latex support",
   "scripts": {
     "prepublishOnly": "npm run lint && npm run build",
     "lint": "tslint src/**/*.ts",
@@ -10,8 +10,13 @@
     "test-manual": "bedrock -d src/test/ts/",
     "start": "grunt webpack"
   },
-  "keywords": [],
-  "author": "Tiny Technologies Inc.",
+  "keywords": [
+    "tinymce",
+    "plugin",
+    "latex",
+    "math"
+  ],
+  "author": "https://github.com/zhangxishuo",
   "devDependencies": {
     "@ephox/agar": "latest",
     "@ephox/bedrock": "latest",
