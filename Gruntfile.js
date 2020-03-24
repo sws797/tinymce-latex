@@ -93,15 +93,11 @@ module.exports = function(grunt) {
 
     copy: {
       css: {
-        files: [
-          {
-            cwd: 'src/text',
-            src: ['license.txt'],
-            dest: 'dist/tinymce-latex',
-            expand: true
-          },
-          { src: ['changelog.txt'], dest: 'dist/tinymce-latex', expand: true }
-        ]
+        files: [{
+          src: ['README.md', 'LICENSE'],
+          dest: 'dist/tinymce-latex',
+          expand: true
+        }]
       }
     },
 
@@ -153,10 +149,6 @@ module.exports = function(grunt) {
   require('load-grunt-tasks')(grunt);
   grunt.loadNpmTasks('@ephox/swag');
 
-  grunt.registerTask('version', 'Creates a version file', function () {
-    grunt.file.write('dist/tinymce-latex/version.txt', BUILD_VERSION);
-  });
-
   grunt.registerTask('default', [
     'clean',
     'tslint',
@@ -164,7 +156,6 @@ module.exports = function(grunt) {
     'rollup',
     'uglify',
     'concat',
-    'copy',
-    'version'
+    'copy'
   ]);
 };
