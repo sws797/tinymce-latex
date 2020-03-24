@@ -13,3 +13,5 @@ ephox-*.tgz
 package-lock.json
 jenkins-plumbing
 .idea/
+plugin.js
+plugin.min.js

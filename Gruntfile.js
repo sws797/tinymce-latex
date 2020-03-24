@@ -16,7 +16,7 @@ module.exports = function(grunt) {
     pkg: packageData,
 
     clean: {
-      dirs: [ 'dist', 'scratch' ]
+      dirs: [ 'scratch' ]
     },
 
     tslint: {
@@ -79,11 +79,11 @@ module.exports = function(grunt) {
         },
         // scratchPluginMinPath is used twice on purpose, all outputs will be minified for premium plugins
         files: {
-          'dist/tinymce-latex/plugin.js': [
+          'plugin.js': [
             'src/text/license-header.js',
             scratchPluginMinPath
           ],
-          'dist/tinymce-latex/plugin.min.js': [
+          'plugin.min.js': [
             'src/text/license-header.js',
             scratchPluginMinPath
           ]
@@ -93,11 +93,7 @@ module.exports = function(grunt) {
 
     copy: {
       css: {
-        files: [{
-          src: ['README.md', 'LICENSE', 'CHANGES'],
-          dest: 'dist/tinymce-latex',
-          expand: true
-        }]
+        files: []
       }
     },
 

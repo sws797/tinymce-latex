@@ -42,7 +42,8 @@
     "webpack-livereload-plugin": "^2.1.1"
   },
   "files": [
-    "dist/tinymce-latex"
+    "plugin.js",
+    "plugin.min.js"
   ],
   "main": "./lib/main/ts/api/Main.js",
   "module": "./lib/main/ts/api/Main.js",
