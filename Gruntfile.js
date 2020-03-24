@@ -94,7 +94,7 @@ module.exports = function(grunt) {
     copy: {
       css: {
         files: [{
-          src: ['README.md', 'LICENSE'],
+          src: ['README.md', 'LICENSE', 'CHANGES'],
           dest: 'dist/tinymce-latex',
           expand: true
         }]

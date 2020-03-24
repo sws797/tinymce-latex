@@ -1,3 +1,3 @@
-# tinymceLatex TinyMCE Plugin
+# Latex plugin for TinyMCE
 
-Welcome stranger! This is a repo containing the tinymceLatex TinyMCE plugin.
+This plugin brings latex formula input graphically for the TinyMCE editor.
