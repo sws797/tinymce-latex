@@ -1,4 +1,4 @@
-import { Document, document, HTMLElement, Window } from '@ephox/dom-globals';
+import { document, HTMLElement, window } from '@ephox/dom-globals';
 import { LatexRender } from './core/latex-render';
 import { LatexConfig } from './core/latex-config';
 import { MathJaxInit } from './core/math-jax-init';
@@ -110,6 +110,8 @@ const setup = (editor) => {
   const latexAction = (target) => {
     /** 当前公式数据 */
     let latex: string = '';
+    /** 公式渲染容器 */
+    let container: HTMLElement;
     /** 传入元素 */
     if (target && target.getAttribute) {
       /** 获取元素的公式值 */
@@ -119,10 +121,6 @@ const setup = (editor) => {
         latex = attribute.substr(2, attribute.length - 4);
       }
     }
-    /** 弹出框 Window 对象 */
-    let iframeWindow: Window;
-    /** 弹出框文档对象 */
-    let iframeDocument: Document;
     // noinspection TypeScriptValidateJSTypes
     /** 点击时，弹出选择页面 */
     editor.windowManager.open({
@@ -137,7 +135,7 @@ const setup = (editor) => {
         }, {
           type: 'htmlpanel',
           name: 'render',
-          html: `<iframe id="${conf.renderIframeID}" style="width: 100%"></iframe>
+          html: `<div id="${conf.renderIframeID}" style="font-size: 1.5rem; width: 100%;"></div>
                  <p style="text-align: center; font-size: 12px; color: #1677ff;">很抱歉, 受第三方开源库MathJax 3.0限制, TinyMCE Latex暂不支持公式换行</p>`
         }]
       },
@@ -154,7 +152,7 @@ const setup = (editor) => {
         /** 获取输入值 */
         const value = getValue(api);
         /** 渲染 iframe 公式 */
-        LatexRender.renderInIframe(iframeWindow, iframeDocument, value);
+        LatexRender.renderInContainer(window, document, container, value);
       },
       onSubmit: (api) => {
         /** 获取输入值 */
@@ -172,17 +170,9 @@ const setup = (editor) => {
     });
 
     /** 获取渲染容器 */
-    const container = document.getElementById(conf.renderIframeID);
-    /** 获取渲染 window */
-    // @ts-ignore
-    iframeWindow = container.contentWindow;
-    /** 获取渲染 document */
-    // @ts-ignore
-    iframeDocument = container.contentDocument;
-    /** 初始化 MathJax 配置 */
-    MathJaxInit.conf(iframeWindow, iframeDocument, conf);
+    container = document.getElementById(conf.renderIframeID);
     /** 渲染 iframe 公式 */
-    LatexRender.renderInIframe(iframeWindow, iframeDocument, latex);
+    LatexRender.renderInContainer(window, document, container, latex);
   };
 
   /** 注册 Latex 按钮 */
@@ -191,10 +181,14 @@ const setup = (editor) => {
     onSetup: () => {
       /** 初始化配置 */
       conf = new LatexConfig(editor);
-      /** 初始化 MathJax 配置 */
+      /** 配置编辑器 iframe 里的 MathJax 配置 */
       MathJaxInit.conf(editor.dom.win, editor.dom.doc, conf);
+      /** 配置主体 window 里的 MathJax 配置 */
+      MathJaxInit.conf(window, document, conf);
     },
-    onAction: latexAction
+    onAction: () => {
+      latexAction(null);
+    }
   });
 };
 

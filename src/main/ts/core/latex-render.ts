@@ -1,4 +1,4 @@
-import { Document, Window } from '@ephox/dom-globals';
+import { Document, HTMLElement, Window } from '@ephox/dom-globals';
 
 /**
  * 公式渲染类
@@ -27,16 +27,17 @@ export class LatexRender {
    * 公式栏内渲染公式
    * @param window Window对象
    * @param document 文档对象
+   * @param container 公式容器
    * @param value 公式
    */
-  public static renderInIframe(window: Window, document: Document, value: string) {
+  public static renderInContainer(window: Window, document: Document, container: HTMLElement, value: string) {
     /** 获取公式持有者 */
-    let holder = document.body.querySelector('div');
+    let holder = container.querySelector('span');
     /** 不存在则创建 */
     if (!holder) {
-      holder = document.createElement('div');
+      holder = document.createElement('span');
       holder.classList.add('math-tex-original');
-      document.body.appendChild(holder);
+      container.appendChild(holder);
     }
     /** 置入公式 */
     holder.innerHTML = this.mathify(value);
