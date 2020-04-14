@@ -8,3 +8,6 @@
   * README, LICENSE, CHANGES.
 1.0.4
   * Change package structure.
+1.0.5
+  * Fix firefox iframe render problem.
+  * Fix formula render problem in some scene.
