@@ -23,6 +23,7 @@
     "@ephox/mcagar": "latest",
     "@ephox/swag": "latest",
     "@ephox/tslint-rules": "latest",
+    "@types/mathjax": "^0.0.36",
     "awesome-typescript-loader": "^5.2.1",
     "grunt": "^1.0.3",
     "grunt-contrib-clean": "^2.0.0",
