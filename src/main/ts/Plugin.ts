@@ -1,5 +1,6 @@
-import { document, HTMLIFrameElement, window } from '@ephox/dom-globals';
-import { LatexRender } from './core/latex-render';
+import { Document, document, HTMLElement, HTMLIFrameElement } from '@ephox/dom-globals';
+import { Conf } from './spec/conf';
+import { MathJaxHolder } from './core/math-jax-holder';
 
 declare const tinymce: any;
 
@@ -7,29 +8,26 @@ export default () => {
   tinymce.PluginManager.add('tinymce-latex', setup);
 };
 
-const conf = {
-  /** 插件名称 */
-  name: 'LaTex',
-  /** 插件标题 */
-  title: 'Latex 公式录入',
-  /** 插件区域值标识 */
-  textarea: 'latex',
-  /** 公式标识信息 */
-  latexId: 'data-latex',
-  /** 公式前缀 */
-  prefix: '\(',
-  /** 公式后缀 */
-  suffix: '\)',
-  /** 渲染区域标识 */
-  renderId: ''
-};
+/**
+ * 插件核心配置
+ */
+const conf: Conf = new Conf(
+  'LaTex',
+  'Latex 公式录入',
+  'latex',
+  'data-latex',
+  '\(', '\)',
+  '.math-tex'
+);
 
 /**
  * 插件核心功能
  */
 const setup = (editor) => {
 
-  /** 注册 Latex 按钮 */
+  /**
+   * 注册 Latex 按钮
+   */
   editor.ui.registry.addButton('tinymce-latex', {
     text: conf.name,
     onSetup: () => {
@@ -45,44 +43,39 @@ const setup = (editor) => {
    * @param target 当前编辑的目标元素
    */
   const onActionHandler = (target) => {
-    /** 当前公式内容 */
     let latex: string = '';
-    /** 公式渲染容器 */
     let container: HTMLIFrameElement;
 
-    // todo: 2020.04.16
-    /** 传入元素 */
+    /** 传入元素，截取公式 */
     if (target) {
-      /** 获取元素的公式值 */
       const attribute = target.getAttribute(conf.latexId);
-      /** 截取纯公式 */
-      if (attribute.length >= 4) {
-        latex = attribute.substr(2, attribute.length - 4);
+      if (attribute.length >= (conf.prefixLength + conf.suffixLength)) {
+        latex = attribute.substr(conf.prefixLength, attribute.length - (conf.prefixLength + conf.suffixLength));
       }
     }
 
-    openLatexDialog('123213', (api) => {
-      /** 获取输入值 */
-      const value = getValue(api);
-      /** 渲染 iframe 公式 */
-      LatexRender.renderInContainer(window, document, container, value);
+    /** 打开公式会话窗口 */
+    openLatexDialog(latex, (api) => {
+      /** 获取公式并渲染 */
+      const value = getLatexValue(api);
+      renderLatexInNewDocument(container.contentDocument, value);
     }, (api) => {
-      /** 获取输入值 */
-      const value = getValue(api);
-      /** 构造元素 */
-      const element = editor.getDoc().createElement('span');
-      /** 渲染元素 */
-      renderElementWithLatex(element, LatexRender.mathify(value));
-      /** 添加到编辑器 */
-      editor.insertContent(element.outerHTML);
-      /** 关闭 api */
-      api.close();
+      console.log('submit');
+      // /** 获取输入值 */
+      // const value = getValue(api);
+      // /** 构造元素 */
+      // const element = editor.getDoc().createElement('span');
+      // /** 渲染元素 */
+      // renderElementWithLatex(element, LatexRender.mathify(value));
+      // /** 添加到编辑器 */
+      // editor.insertContent(element.outerHTML);
+      // /** 关闭 api */
+      // api.close();
     });
 
-    /** 获取渲染容器 */
-    container = document.getElementById(conf.renderId);
-    /** 渲染 iframe 公式 */
-    LatexRender.renderInContainer(window, document, container, latex);
+    /** 获取容器并渲染 */
+    container = document.getElementById(conf.renderId) as HTMLIFrameElement;
+    renderLatexInNewDocument(container.contentDocument, latex);
   };
 
   /**
@@ -108,8 +101,7 @@ const setup = (editor) => {
         }, {
           type: 'htmlpanel',
           name: 'render',
-          html: `<iframe id="${conf.renderId}" style="width: 100%;"></iframe>
-                 <p style="text-align: center; font-size: 12px; color: #1677ff;">很抱歉, 受第三方开源库MathJax 3.0限制, TinyMCE Latex暂不支持公式换行</p>`
+          html: `<iframe id="${conf.renderId}" style="width: 100%;"></iframe>`
         }]
       },
       buttons: [{
@@ -121,6 +113,40 @@ const setup = (editor) => {
       onSubmit: onSubmitHandler,
       initialData: initial
     });
+  };
+
+  /**
+   * 在新文档中渲染公式
+   * @param doc   文档对象
+   * @param latex 公式
+   */
+  const renderLatexInNewDocument = (doc: Document, latex: string) => {
+    renderLatexInHTMLElement(doc.body, latex);
+  };
+
+  /**
+   * 在 HTML 元素中渲染公式
+   * @param el    元素
+   * @param latex 公式
+   */
+  const renderLatexInHTMLElement = (el: HTMLElement, latex: string) => {
+    /** 获取公式渲染结果 */
+    const mathJax = MathJaxHolder.getMathJax();
+    const options = mathJax.getMetricsFor(el, true);
+    const node = mathJax.tex2svg(latex, options);
+    let result = node.querySelector('svg');
+
+    /** 错误处理 */
+    const error = node.querySelector('merror');
+    if (error) {
+      result = document.createElement('strong');
+      result.style.color = '#dc3545';
+      result.innerHTML = '当前公式格式有误: ' + error.innerHTML;
+    }
+
+    /** 追加 */
+    el.innerHTML = '';
+    el.appendChild(result);
   };
 
   editor.on('GetContent', function (e) {
@@ -206,12 +232,11 @@ const setup = (editor) => {
   };
 
   /**
-   * 从 api 对象中获取输入值
-   * @param api 编辑器对象
+   * 获取当前输入的公式值
+   * @param api 接口对象
    */
-  const getValue = (api) => {
-    return api.getData().input.trim();
+  const getLatexValue = (api) => {
+    const data = api.getData();
+    return data[conf.textarea].trim();
   };
 };
-
-

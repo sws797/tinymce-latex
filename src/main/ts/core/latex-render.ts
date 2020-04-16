@@ -5,9 +5,7 @@ import { Document, HTMLElement, Window } from '@ephox/dom-globals';
  */
 export class LatexRender {
 
-  public static init() {
-    //
-  }
+
 
   /**
    * 渲染公式
