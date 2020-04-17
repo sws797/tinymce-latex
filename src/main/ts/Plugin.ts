@@ -1,4 +1,4 @@
-import { Document, document, HTMLElement, HTMLIFrameElement } from '@ephox/dom-globals';
+import { Document, document, HTMLElement, HTMLIFrameElement, window } from '@ephox/dom-globals';
 import { Conf } from './spec/conf';
 import { MathJaxHolder } from './core/math-jax-holder';
 
@@ -185,36 +185,27 @@ const setup = (editor) => {
   editor.on('BeforeSetContent', function (e) {
     console.log('before set content');
     console.log(e);
-    // /** 查询所有需要渲染的元素 */
+    /** 查询所有需要渲染的元素 */
     // const div = document.createElement('div') as HTMLElement;
     // div.innerHTML = e.content;
-    // const elements = div.querySelectorAll('.math-tex');
-    // /** 渲染元素 */
-    // // @ts-ignore
+    // const elements = div.querySelectorAll(conf.selector);
+    // // /** 渲染元素 */
+    // // // @ts-ignore
     // for (const element of elements) {
-    //   renderElement(element);
+    //   renderHTMLElement(element);
     // }
-    // /** 渲染后置回 */
+    // // /** 渲染后置回 */
     // e.content = div.innerHTML;
   });
 
   /** 监听 set-content 事件 */
   editor.on('SetContent', (e) => {
-    console.log('set content');
-    console.log(e);
-
-    // const div = document.createElement('div') as HTMLElement;
-    // div.innerHTML = e.content;
-    // const elements = div.querySelectorAll(conf.selector);
-    // for (const element of elements) {
-    //   renderHTMLElement(element);
-    // }
-    // console.log(elements);
-    // console.log(div);
-    // e.content = div.innerHTML;
-    // editor.insertContent(div.innerHTML);
-    // /** 渲染公式 */
-    // LatexRender.render(editor.getDoc().defaultView.MathJax);
+    /** 渲染公式 */
+    const doc = editor.getDoc();
+    const elements = doc.querySelectorAll(conf.selector);
+    for (const element of elements) {
+      renderHTMLElement(element);
+    }
   });
 
   /** 监听点击事件 */
