@@ -1,197 +1,266 @@
-import { document, HTMLElement, window } from '@ephox/dom-globals';
-import { LatexRender } from './core/latex-render';
-import { LatexConfig } from './core/latex-config';
-import { MathJaxInit } from './core/math-jax-init';
+import { Document, document, HTMLElement, HTMLIFrameElement } from '@ephox/dom-globals';
+import { Conf } from './spec/conf';
+import { MathJaxHolder } from './core/math-jax-holder';
 
 declare const tinymce: any;
+
+export default () => {
+  tinymce.PluginManager.add('tinymce-latex', setup);
+};
+
+/**
+ * 插件核心配置
+ */
+const conf: Conf = new Conf(
+  'LaTex',
+  'Latex 公式录入',
+  'latex',
+  'data-latex',
+  '\\\(',
+  '\\\)',
+  'math-tex'
+);
 
 /**
  * 插件核心功能
  */
 const setup = (editor) => {
 
-  /** 核心配置 */
-  let conf;
-
-  editor.on('GetContent', function (e) {
-    /** 查询所有需要渲染的元素 */
-    const div = document.createElement('div') as HTMLElement;
-    div.innerHTML = e.content;
-    const elements = div.querySelectorAll('.math-tex');
-    /** 元素 -> latex */
-    // @ts-ignore
-    for (const element of elements) {
-      /** 移除子元素 */
-      const children = element.querySelectorAll('span');
-      // tslint:disable-next-line:prefer-for-of
-      for (let j = 0; j < children.length; j++) {
-        children[j].remove();
-      }
-      /** 移除属性 */
-      const latex = element.getAttribute('data-latex');
-      element.removeAttribute('contenteditable');
-      element.removeAttribute('style');
-      element.removeAttribute('data-latex');
-      element.innerHTML = latex;
+  /**
+   * 注册 Latex 按钮
+   */
+  editor.ui.registry.addButton('tinymce-latex', {
+    text: conf.name,
+    onSetup: () => {
+      conf.renderId = editor.dom.uniqueId();
+    },
+    onAction: () => {
+      onActionHandler(null);
     }
-    /** 返回纯 latex */
-    e.content = div.innerHTML;
   });
 
-  /** 监听 before-set-content 事件 */
-  editor.on('BeforeSetContent', function (e) {
-    /** 查询所有需要渲染的元素 */
-    const div = document.createElement('div') as HTMLElement;
-    div.innerHTML = e.content;
-    const elements = div.querySelectorAll('.math-tex');
-    /** 渲染元素 */
-    // @ts-ignore
-    for (const element of elements) {
-      renderElement(element);
-    }
-    /** 渲染后置回 */
-    e.content = div.innerHTML;
-  });
-
-  /** 监听 set-content 事件 */
-  editor.on('SetContent', () => {
-    /** 渲染公式 */
-    LatexRender.render(editor.getDoc().defaultView.MathJax);
-  });
-
-  /** 监听点击事件 */
+  /**
+   * 监听元素点击事件
+   */
   editor.on('click', (e) => {
-    /** 如果点击了 math-tex 的元素 */
-    const container = e.target.closest('.math-tex');
-    /** 弹出编辑框 */
+    const container = e.target.closest(conf.selector);
     if (container) {
-      latexAction(container);
+      onActionHandler(container);
     }
   });
-
-  const renderElement = (element) => {
-    const value = element.getAttribute('data-latex') || element.innerHTML;
-    renderElementWithLatex(element, value);
-  };
-
-  /**
-   * 渲染元素
-   * @param element 元素
-   * @param value 公式
-   */
-  const renderElementWithLatex = (element, value) => {
-    element.classList.add('math-tex');
-    element.innerHTML = '';
-    element.style.cursor = 'pointer';
-    element.style.display = 'inline-block';
-    element.style.marginLeft = '5px';
-    element.style.marginRight = '5px';
-    element.setAttribute('contenteditable', false);
-    element.setAttribute('data-latex', value);
-
-    const math = editor.dom.create('span');
-    math.innerHTML = value;
-    math.classList.add('math-tex-original');
-    element.appendChild(math);
-  };
-
-  /**
-   * 从 api 对象中获取输入值
-   * @param api 编辑器对象
-   */
-  const getValue = (api) => {
-    return api.getData().input.trim();
-  };
 
   /**
    * latex 插件的按钮点击响应方法
    * @param target 当前编辑的目标元素
    */
-  const latexAction = (target) => {
-    /** 当前公式数据 */
+  const onActionHandler = (target) => {
     let latex: string = '';
-    /** 公式渲染容器 */
-    let container: HTMLElement;
-    /** 传入元素 */
-    if (target && target.getAttribute) {
-      /** 获取元素的公式值 */
-      const attribute = target.getAttribute('data-latex');
-      /** 截取纯公式 */
-      if (attribute.length >= 4) {
-        latex = attribute.substr(2, attribute.length - 4);
-      }
+    let container: HTMLIFrameElement;
+
+    if (target) {
+      latex = target.getAttribute(conf.latexId);
     }
-    // noinspection TypeScriptValidateJSTypes
+
+    /** 打开公式会话窗口 */
+    openLatexDialog(latex, (api) => {
+      /** 获取公式并渲染 */
+      const value = getLatexValue(api);
+      renderLatexInNewDocument(container.contentDocument, value);
+    }, (api) => {
+      /** 提交公式 */
+      const value = getLatexValue(api);
+      if (target) {
+        normalizeElNode(target, value);
+        renderInTinyMCEDocument();
+      } else {
+        const element = document.createElement('span');
+        normalizeElNode(element, value);
+        editor.insertContent(element.outerHTML);
+      }
+      api.close();
+    });
+
+    /** 获取容器并渲染 */
+    container = document.getElementById(conf.renderId) as HTMLIFrameElement;
+    renderLatexInNewDocument(container.contentDocument, latex);
+  };
+
+  /**
+   * 标准化元素节点
+   * @param el    元素节点
+   * @param latex 公式
+   */
+  const normalizeElNode = (el: HTMLElement, latex: string) => {
+    el.innerHTML = latex;
+    el.setAttribute(conf.latexId, latex);
+    el.setAttribute('contenteditable', 'false');
+    el.classList.add(conf.clazz);
+    el.style.cursor = 'pointer';
+    el.style.display = 'inline-block';
+    el.style.marginLeft = '5px';
+    el.style.marginRight = '5px';
+  };
+
+  /**
+   * 打开公式录入框
+   * @param latex           latex 公式
+   * @param onChangeHandler 公式变动处理器
+   * @param onSubmitHandler 公式提交处理器
+   */
+  const openLatexDialog = (latex: string,
+                           onChangeHandler: (api) => void,
+                           onSubmitHandler: (api) => void) => {
+    /** 配置初始化数据 */
+    const initial = {};
+    initial[conf.textarea] = latex;
     /** 点击时，弹出选择页面 */
     editor.windowManager.open({
-      /** 弹出框标题 */
-      title: 'Latex 公式录入',
-      /** 弹出框主体 */
+      title: conf.title,
       body: {
         type: 'panel',
         items: [{
           type: 'textarea',
-          name: 'input'
+          name: 'latex'
         }, {
           type: 'htmlpanel',
           name: 'render',
-          html: `<div id="${conf.renderIframeID}" style="font-size: 1.5rem; width: 100%;"></div>
-                 <p style="text-align: center; font-size: 12px; color: #1677ff;">很抱歉, 受第三方开源库MathJax 3.0限制, TinyMCE Latex暂不支持公式换行</p>`
+          html: `<iframe id="${conf.renderId}" style="width: 100%;"></iframe>`
         }]
       },
-      /** 底部按钮 */
-      buttons: [
-        {
-          type: 'submit',
-          text: '保存'
-        }
-      ],
-      /** 弹出框尺寸 */
+      buttons: [{
+        type: 'submit',
+        text: '保存'
+      }],
       size: 'large',
-      onChange: (api) => {
-        /** 获取输入值 */
-        const value = getValue(api);
-        /** 渲染 iframe 公式 */
-        LatexRender.renderInContainer(window, document, container, value);
-      },
-      onSubmit: (api) => {
-        /** 获取输入值 */
-        const value = getValue(api);
-        /** 构造元素 */
-        const element = editor.getDoc().createElement('span');
-        /** 渲染元素 */
-        renderElementWithLatex(element, LatexRender.mathify(value));
-        /** 添加到编辑器 */
-        editor.insertContent(element.outerHTML);
-        /** 关闭 api */
-        api.close();
-      },
-      initialData: {input: latex}
+      onChange: onChangeHandler,
+      onSubmit: onSubmitHandler,
+      initialData: initial
     });
-
-    /** 获取渲染容器 */
-    container = document.getElementById(conf.renderIframeID);
-    /** 渲染 iframe 公式 */
-    LatexRender.renderInContainer(window, document, container, latex);
   };
 
-  /** 注册 Latex 按钮 */
-  editor.ui.registry.addButton('tinymce-latex', {
-    text: 'LaTex',
-    onSetup: () => {
-      /** 初始化配置 */
-      conf = new LatexConfig(editor);
-      /** 配置编辑器 iframe 里的 MathJax 配置 */
-      MathJaxInit.conf(editor.dom.win, editor.dom.doc, conf);
-      /** 配置主体 window 里的 MathJax 配置 */
-      MathJaxInit.conf(window, document, conf);
-    },
-    onAction: () => {
-      latexAction(null);
-    }
-  });
-};
+  /**
+   * 在新文档中渲染公式
+   * @param doc   文档对象
+   * @param latex 公式
+   */
+  const renderLatexInNewDocument = (doc: Document, latex: string) => {
+    renderLatexInHTMLElement(doc.body, latex);
+  };
 
-export default () => {
-  tinymce.PluginManager.add('tinymce-latex', setup);
+  /**
+   * 渲染 TinyMCE 编辑器文档内公式
+   */
+  const renderInTinyMCEDocument = () => {
+    /** 渲染公式 */
+    const doc = editor.getDoc();
+    const elements = doc.querySelectorAll(conf.selector);
+    for (const element of elements) {
+      renderHTMLElement(element);
+    }
+  };
+
+  /**
+   * 重置 HTML 元素公式
+   * @param el 元素
+   */
+  const resetHTMLElement = (el: HTMLElement) => {
+    const latex = el.getAttribute(conf.latexId);
+    el.removeAttribute('style');
+    el.removeAttribute('contenteditable');
+    el.removeAttribute('data-mce-style');
+    el.removeAttribute(conf.latexId);
+    el.innerHTML = normalizeLatex(latex);
+  };
+
+  /**
+   * 渲染 HTML 元素公式
+   * @param el 元素
+   */
+  const renderHTMLElement = (el: HTMLElement) => {
+    renderLatexInHTMLElement(el, el.getAttribute(conf.latexId));
+  };
+
+  /**
+   * 在 HTML 元素中渲染公式
+   * @param el    元素
+   * @param latex 公式
+   */
+  const renderLatexInHTMLElement = (el: HTMLElement, latex: string) => {
+    /** 获取公式渲染结果 */
+    const mathJax = MathJaxHolder.getMathJax();
+    const options = mathJax.getMetricsFor(el, true);
+    const node = mathJax.tex2svg(latex, options);
+    let result = node.querySelector('svg');
+
+    /** 错误处理 */
+    const error = node.querySelector('merror');
+    if (error) {
+      result = document.createElement('strong');
+      result.style.color = '#dc3545';
+      result.innerHTML = '当前公式格式有误: ' + error.innerHTML;
+    }
+
+    /** 追加 */
+    el.innerHTML = '';
+    el.appendChild(result);
+  };
+
+  editor.on('GetContent', function (e) {
+    /** 重置元素，公式 latex 化 */
+    const doc = editor.getDoc();
+    const div = document.createElement('div');
+    div.innerHTML = doc.body.innerHTML;
+    const elements = div.querySelectorAll(conf.selector);
+    // @ts-ignore
+    for (const el of elements) {
+      resetHTMLElement(el);
+    }
+    e.content = div.innerHTML;
+  });
+
+  /** 监听 before-set-content 事件 */
+  editor.on('BeforeSetContent', function (e) {
+    /** 公式去 latex 化 */
+    const div = document.createElement('div') as HTMLElement;
+    div.innerHTML = e.content;
+    const elements = div.querySelectorAll(conf.selector);
+    // @ts-ignore
+    for (const element of elements) {
+      const latex = unNormalizeLatex(element.innerHTML);
+      normalizeElNode(element, latex);
+    }
+    e.content = div.innerHTML;
+  });
+
+  /** 监听 set-content 事件 */
+  editor.on('SetContent', (e) => {
+    renderInTinyMCEDocument();
+  });
+
+  /**
+   * 获取当前输入的公式值
+   * @param api 接口对象
+   */
+  const getLatexValue = (api) => {
+    const data = api.getData();
+    return data[conf.textarea].trim();
+  };
+
+  /**
+   * 将公式变更为规范化格式
+   * @param latex 公式
+   */
+  const normalizeLatex = (latex: string) => {
+    return `${conf.prefix}${latex}${conf.suffix}`;
+  };
+
+  /**
+   * 将公式去 latex 化
+   * @param latex 去规范化
+   */
+  const unNormalizeLatex = (latex: string) => {
+    if (latex.length >= (conf.prefixLength + conf.suffixLength)) {
+      return latex.substr(conf.prefixLength, latex.length - (conf.prefixLength + conf.suffixLength));
+    }
+  };
 };
