@@ -159,6 +159,19 @@ const setup = (editor) => {
   };
 
   /**
+   * 重置 HTML 元素公式
+   * @param el 元素
+   */
+  const resetHTMLElement = (el: HTMLElement) => {
+    const latex = el.getAttribute(conf.latexId);
+    el.removeAttribute('style');
+    el.removeAttribute('contenteditable');
+    el.removeAttribute('data-mce-style');
+    el.removeAttribute(conf.latexId);
+    el.innerHTML = normalizeLatex(latex);
+  };
+
+  /**
    * 渲染 HTML 元素公式
    * @param el 元素
    */
@@ -192,29 +205,13 @@ const setup = (editor) => {
   };
 
   editor.on('GetContent', function (e) {
-    // 将公式 latex 化
-    // /** 查询所有需要渲染的元素 */
-    // const div = document.createElement('div') as HTMLElement;
-    // div.innerHTML = e.content;
-    // const elements = div.querySelectorAll('.math-tex');
-    // /** 元素 -> latex */
-    // // @ts-ignore
-    // for (const element of elements) {
-    //   /** 移除子元素 */
-    //   const children = element.querySelectorAll('span');
-    //   // tslint:disable-next-line:prefer-for-of
-    //   for (let j = 0; j < children.length; j++) {
-    //     children[j].remove();
-    //   }
-    //   /** 移除属性 */
-    //   const latex = element.getAttribute('data-latex');
-    //   element.removeAttribute('contenteditable');
-    //   element.removeAttribute('style');
-    //   element.removeAttribute('data-latex');
-    //   element.innerHTML = latex;
-    // }
-    // /** 返回纯 latex */
-    // e.content = div.innerHTML;
+    /** 渲染公式 */
+    const doc = editor.getDoc();
+    const elements = doc.querySelectorAll(conf.selector);
+    for (const el of elements) {
+      resetHTMLElement(el);
+    }
+    e.content = doc.body.innerHTML;
   });
 
   /** 监听 before-set-content 事件 */
