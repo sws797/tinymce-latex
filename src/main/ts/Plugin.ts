@@ -220,20 +220,16 @@ const setup = (editor) => {
 
   /** 监听 before-set-content 事件 */
   editor.on('BeforeSetContent', function (e) {
-    // 将公式去 latex 化
-    console.log('before set content');
-    console.log(e);
-    /** 查询所有需要渲染的元素 */
-    // const div = document.createElement('div') as HTMLElement;
-    // div.innerHTML = e.content;
-    // const elements = div.querySelectorAll(conf.selector);
-    // // /** 渲染元素 */
-    // // // @ts-ignore
-    // for (const element of elements) {
-    //   renderHTMLElement(element);
-    // }
-    // // /** 渲染后置回 */
-    // e.content = div.innerHTML;
+    /** 公式去 latex 化 */
+    const div = document.createElement('div') as HTMLElement;
+    div.innerHTML = e.content;
+    const elements = div.querySelectorAll(conf.selector);
+    // @ts-ignore
+    for (const element of elements) {
+      const latex = unNormalizeLatex(element.innerHTML);
+      normalizeElNode(element, latex);
+    }
+    e.content = div.innerHTML;
   });
 
   /** 监听 set-content 事件 */
@@ -256,5 +252,15 @@ const setup = (editor) => {
    */
   const normalizeLatex = (latex: string) => {
     return `${conf.prefix}${latex}${conf.suffix}`;
+  };
+
+  /**
+   * 将公式去 latex 化
+   * @param latex 去规范化
+   */
+  const unNormalizeLatex = (latex: string) => {
+    if (latex.length >= (conf.prefixLength + conf.suffixLength)) {
+      return latex.substr(conf.prefixLength, latex.length - (conf.prefixLength + conf.suffixLength));
+    }
   };
 };

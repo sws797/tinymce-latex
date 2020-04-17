@@ -9,9 +9,11 @@ export class MathJaxHolder {
     if (this.ready) {
       return this.mathJax;
     }
+    // @ts-ignore
     if (!window.MathJax) {
-      throw 'please check MathJax!';
+      return;
     }
+    // @ts-ignore
     this.mathJax = window.MathJax;
     this.ready = true;
     return this.mathJax;
