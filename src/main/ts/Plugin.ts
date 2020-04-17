@@ -16,7 +16,8 @@ const conf: Conf = new Conf(
   'Latex 公式录入',
   'latex',
   'data-latex',
-  '\(', '\)',
+  '\\\(',
+  '\\\)',
   'math-tex'
 );
 
