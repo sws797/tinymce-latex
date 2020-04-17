@@ -1,4 +1,4 @@
-import { Document, document, HTMLElement, HTMLIFrameElement, window } from '@ephox/dom-globals';
+import { Document, document, HTMLElement, HTMLIFrameElement } from '@ephox/dom-globals';
 import { Conf } from './spec/conf';
 import { MathJaxHolder } from './core/math-jax-holder';
 
@@ -39,6 +39,16 @@ const setup = (editor) => {
   });
 
   /**
+   * 监听元素点击事件
+   */
+  editor.on('click', (e) => {
+    const container = e.target.closest(conf.selector);
+    if (container) {
+      onActionHandler(container);
+    }
+  });
+
+  /**
    * latex 插件的按钮点击响应方法
    * @param target 当前编辑的目标元素
    */
@@ -46,12 +56,8 @@ const setup = (editor) => {
     let latex: string = '';
     let container: HTMLIFrameElement;
 
-    /** 传入元素，截取公式 */
     if (target) {
-      const attribute = target.getAttribute(conf.latexId);
-      if (attribute.length >= (conf.prefixLength + conf.suffixLength)) {
-        latex = attribute.substr(conf.prefixLength, attribute.length - (conf.prefixLength + conf.suffixLength));
-      }
+      latex = target.getAttribute(conf.latexId);
     }
 
     /** 打开公式会话窗口 */
@@ -62,19 +68,36 @@ const setup = (editor) => {
     }, (api) => {
       /** 提交公式 */
       const value = getLatexValue(api);
-      if (!target) {
-        target = document.createElement('span');
+      if (target) {
+        normalizeElNode(target, value);
+        renderInTinyMCEDocument();
+      } else {
+        const element = document.createElement('span');
+        normalizeElNode(element, value);
+        editor.insertContent(element.outerHTML);
       }
-      target.classList.add(conf.clazz);
-      target.innerHTML = value;
-      target.setAttribute(conf.latexId, value);
-      editor.insertContent(target.outerHTML);
       api.close();
     });
 
     /** 获取容器并渲染 */
     container = document.getElementById(conf.renderId) as HTMLIFrameElement;
     renderLatexInNewDocument(container.contentDocument, latex);
+  };
+
+  /**
+   * 标准化元素节点
+   * @param el    元素节点
+   * @param latex 公式
+   */
+  const normalizeElNode = (el: HTMLElement, latex: string) => {
+    el.innerHTML = latex;
+    el.setAttribute(conf.latexId, latex);
+    el.setAttribute('contenteditable', 'false');
+    el.classList.add(conf.clazz);
+    el.style.cursor = 'pointer';
+    el.style.display = 'inline-block';
+    el.style.marginLeft = '5px';
+    el.style.marginRight = '5px';
   };
 
   /**
@@ -124,6 +147,18 @@ const setup = (editor) => {
   };
 
   /**
+   * 渲染 TinyMCE 编辑器文档内公式
+   */
+  const renderInTinyMCEDocument = () => {
+    /** 渲染公式 */
+    const doc = editor.getDoc();
+    const elements = doc.querySelectorAll(conf.selector);
+    for (const element of elements) {
+      renderHTMLElement(element);
+    }
+  };
+
+  /**
    * 渲染 HTML 元素公式
    * @param el 元素
    */
@@ -157,6 +192,7 @@ const setup = (editor) => {
   };
 
   editor.on('GetContent', function (e) {
+    // 将公式 latex 化
     // /** 查询所有需要渲染的元素 */
     // const div = document.createElement('div') as HTMLElement;
     // div.innerHTML = e.content;
@@ -183,6 +219,7 @@ const setup = (editor) => {
 
   /** 监听 before-set-content 事件 */
   editor.on('BeforeSetContent', function (e) {
+    // 将公式去 latex 化
     console.log('before set content');
     console.log(e);
     /** 查询所有需要渲染的元素 */
@@ -200,49 +237,8 @@ const setup = (editor) => {
 
   /** 监听 set-content 事件 */
   editor.on('SetContent', (e) => {
-    /** 渲染公式 */
-    const doc = editor.getDoc();
-    const elements = doc.querySelectorAll(conf.selector);
-    for (const element of elements) {
-      renderHTMLElement(element);
-    }
+    renderInTinyMCEDocument();
   });
-
-  /** 监听点击事件 */
-  editor.on('click', (e) => {
-    /** 如果点击了 math-tex 的元素 */
-    const container = e.target.closest('.math-tex');
-    /** 弹出编辑框 */
-    if (container) {
-      latexAction(container);
-    }
-  });
-
-  const renderElement = (element) => {
-    const value = element.getAttribute('data-latex') || element.innerHTML;
-    renderElementWithLatex(element, value);
-  };
-
-  /**
-   * 渲染元素
-   * @param element 元素
-   * @param value 公式
-   */
-  const renderElementWithLatex = (element, value) => {
-    element.classList.add('math-tex');
-    element.innerHTML = '';
-    element.style.cursor = 'pointer';
-    element.style.display = 'inline-block';
-    element.style.marginLeft = '5px';
-    element.style.marginRight = '5px';
-    element.setAttribute('contenteditable', false);
-    element.setAttribute('data-latex', value);
-
-    const math = editor.dom.create('span');
-    math.innerHTML = value;
-    math.classList.add('math-tex-original');
-    element.appendChild(math);
-  };
 
   /**
    * 获取当前输入的公式值
@@ -257,7 +253,7 @@ const setup = (editor) => {
    * 将公式变更为规范化格式
    * @param latex 公式
    */
-  const normalize = (latex: string) => {
+  const normalizeLatex = (latex: string) => {
     return `${conf.prefix}${latex}${conf.suffix}`;
   };
 };
