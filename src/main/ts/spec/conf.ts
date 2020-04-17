@@ -27,13 +27,16 @@ export class Conf {
   /** 后缀长度 */
   public suffixLength: number;
 
+  /** 样式 */
+  public clazz: string;
+
   /** 公式选择器 */
   public selector: string;
 
   /** 渲染区域标识 */
   public renderId: string;
 
-  constructor(name: string, title: string, textarea: string, latexId: string, prefix: string, suffix: string, selector: string) {
+  constructor(name: string, title: string, textarea: string, latexId: string, prefix: string, suffix: string, clazz: string) {
     this.name = name;
     this.title = title;
     this.textarea = textarea;
@@ -42,6 +45,7 @@ export class Conf {
     this.suffix = suffix;
     this.prefixLength = this.prefix.length;
     this.suffixLength = this.prefix.length;
-    this.selector = selector;
+    this.clazz = clazz;
+    this.selector = `.${this.clazz}`;
   }
 }

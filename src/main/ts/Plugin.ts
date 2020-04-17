@@ -17,7 +17,7 @@ const conf: Conf = new Conf(
   'latex',
   'data-latex',
   '\(', '\)',
-  '.math-tex'
+  'math-tex'
 );
 
 /**
@@ -60,17 +60,16 @@ const setup = (editor) => {
       const value = getLatexValue(api);
       renderLatexInNewDocument(container.contentDocument, value);
     }, (api) => {
-      console.log('submit');
-      // /** 获取输入值 */
-      // const value = getValue(api);
-      // /** 构造元素 */
-      // const element = editor.getDoc().createElement('span');
-      // /** 渲染元素 */
-      // renderElementWithLatex(element, LatexRender.mathify(value));
-      // /** 添加到编辑器 */
-      // editor.insertContent(element.outerHTML);
-      // /** 关闭 api */
-      // api.close();
+      /** 提交公式 */
+      const value = getLatexValue(api);
+      if (!target) {
+        target = document.createElement('span');
+      }
+      target.classList.add(conf.clazz);
+      target.innerHTML = value;
+      target.setAttribute(conf.latexId, value);
+      editor.insertContent(target.outerHTML);
+      api.close();
     });
 
     /** 获取容器并渲染 */
@@ -125,6 +124,14 @@ const setup = (editor) => {
   };
 
   /**
+   * 渲染 HTML 元素公式
+   * @param el 元素
+   */
+  const renderHTMLElement = (el: HTMLElement) => {
+    renderLatexInHTMLElement(el, el.getAttribute(conf.latexId));
+  };
+
+  /**
    * 在 HTML 元素中渲染公式
    * @param el    元素
    * @param latex 公式
@@ -176,6 +183,8 @@ const setup = (editor) => {
 
   /** 监听 before-set-content 事件 */
   editor.on('BeforeSetContent', function (e) {
+    console.log('before set content');
+    console.log(e);
     // /** 查询所有需要渲染的元素 */
     // const div = document.createElement('div') as HTMLElement;
     // div.innerHTML = e.content;
@@ -190,7 +199,20 @@ const setup = (editor) => {
   });
 
   /** 监听 set-content 事件 */
-  editor.on('SetContent', () => {
+  editor.on('SetContent', (e) => {
+    console.log('set content');
+    console.log(e);
+
+    // const div = document.createElement('div') as HTMLElement;
+    // div.innerHTML = e.content;
+    // const elements = div.querySelectorAll(conf.selector);
+    // for (const element of elements) {
+    //   renderHTMLElement(element);
+    // }
+    // console.log(elements);
+    // console.log(div);
+    // e.content = div.innerHTML;
+    // editor.insertContent(div.innerHTML);
     // /** 渲染公式 */
     // LatexRender.render(editor.getDoc().defaultView.MathJax);
   });
@@ -238,5 +260,13 @@ const setup = (editor) => {
   const getLatexValue = (api) => {
     const data = api.getData();
     return data[conf.textarea].trim();
+  };
+
+  /**
+   * 将公式变更为规范化格式
+   * @param latex 公式
+   */
+  const normalize = (latex: string) => {
+    return `${conf.prefix}${latex}${conf.suffix}`;
   };
 };
