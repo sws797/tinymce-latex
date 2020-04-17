@@ -226,7 +226,10 @@ const setup = (editor) => {
     const elements = div.querySelectorAll(conf.selector);
     // @ts-ignore
     for (const element of elements) {
-      const latex = unNormalizeLatex(element.innerHTML);
+      let latex = element.getAttribute(conf.latexId);
+      if (!latex) {
+        latex = unNormalizeLatex(element.innerHTML);
+      }
       normalizeElNode(element, latex);
     }
     e.content = div.innerHTML;
