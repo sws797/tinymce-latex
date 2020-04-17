@@ -206,13 +206,16 @@ const setup = (editor) => {
   };
 
   editor.on('GetContent', function (e) {
-    /** 渲染公式 */
+    /** 重置元素，公式 latex 化 */
     const doc = editor.getDoc();
-    const elements = doc.querySelectorAll(conf.selector);
+    const div = document.createElement('div');
+    div.innerHTML = doc.body.innerHTML;
+    const elements = div.querySelectorAll(conf.selector);
+    // @ts-ignore
     for (const el of elements) {
       resetHTMLElement(el);
     }
-    e.content = doc.body.innerHTML;
+    e.content = div.innerHTML;
   });
 
   /** 监听 before-set-content 事件 */
