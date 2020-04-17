@@ -11,3 +11,6 @@
 1.0.5
   * Fix firefox iframe render problem.
   * Fix formula render problem in some scene.
+1.0.6
+  * Fix compatible issue in angular environment.
+  * Refactor project.
