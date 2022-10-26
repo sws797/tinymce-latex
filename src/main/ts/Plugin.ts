@@ -170,19 +170,6 @@ const setup = (editor) => {
   };
 
   /**
-   * 重置 HTML 元素公式
-   * @param el 元素
-   */
-  const resetHTMLElement = (el: HTMLElement) => {
-    const latex = el.getAttribute(conf.latexId);
-    el.removeAttribute('style');
-    el.removeAttribute('contenteditable');
-    el.removeAttribute('data-mce-style');
-    el.removeAttribute(conf.latexId);
-    el.innerHTML = normalizeLatex(latex);
-  };
-
-  /**
    * 渲染 HTML 元素公式
    * @param el 元素
    */
@@ -215,17 +202,17 @@ const setup = (editor) => {
     el.appendChild(result);
   };
 
-  editor.on('GetContent', function (e) {
-    /** 重置元素，公式 latex 化 */
-    const doc = editor.getDoc();
-    const div = document.createElement('div');
-    div.innerHTML = doc.body.innerHTML;
-    const elements = div.querySelectorAll(conf.selector);
-    // @ts-ignore
-    for (const el of elements) {
-      resetHTMLElement(el);
-    }
-    e.content = div.innerHTML;
+  /**
+   * 添加自定义筛选，避免 editor.getContent 筛掉公式内容，参考官方 codesample 插件
+   * 同时也可以避免搭配 tinymce-vue 使用时，因为不明原因导致的内容重置
+   * 内容重置会导致富文本删除内容删除到 link 时，光标飞到文档起始位置
+   */
+  editor.on('PreProcess', (e) => {
+    editor.$(`span[${conf.clazz}]`, e.node).each((idx, elm) => {
+      const $elm = editor.$(elm);
+      const latex = $elm.attr(conf.latexId);
+      $elm.replaceWith(`<span class="${conf.clazz}">${normalizeLatex(latex)}</span>`);
+    });
   });
 
   /** 监听 before-set-content 事件 */
